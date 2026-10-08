@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.Build.Sql/2.1.0">
+
+  <PropertyGroup>
+    <Name>GlobalDB</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider</DSP>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <TargetFileName>GlobalDB.dacpac</TargetFileName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Build Remove="Migrations\**" />
+  </ItemGroup>
+
+</Project>

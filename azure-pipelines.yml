@@ -1,0 +1,75 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-2022'
+
+steps:
+
+# 1. Checkout source code
+
+- checkout: self
+  displayName: 'Checkout GlobalDB Repository'
+
+
+# 2. Install .NET SDK
+- task: UseDotNet@2
+  displayName: 'Install .NET SDK'
+  inputs:
+    packageType: 'sdk'
+    version: '8.x'
+
+
+# 3. Restore SQL Project
+
+- powershell: |
+    dotnet restore "$(Build.SourcesDirectory)\GlobalDB.sqlproj"
+  displayName: 'Restore GlobalDB SQL Project'
+
+
+# 4. Build SQL Project
+- powershell: |
+    dotnet build "$(Build.SourcesDirectory)\GlobalDB.sqlproj" `
+      --configuration "Release" `
+      --no-restore
+  displayName: 'Build GlobalDB SQL Project'
+
+
+# 5. Verify DACPAC
+- powershell: |
+    $dacpac = "$(Build.SourcesDirectory)\bin\Release\GlobalDB.dacpac"
+
+    if (!(Test-Path $dacpac)) {
+        Write-Error "GlobalDB.dacpac was not generated."
+        exit 1
+    }
+
+    Write-Host "DACPAC generated successfully:"
+    Write-Host $dacpac
+  displayName: 'Validate GlobalDB DACPAC'
+
+
+# 6. Copy DACPAC to artifact staging
+- task: CopyFiles@2
+  displayName: 'Copy DACPAC'
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)\bin\Release'
+    Contents: 'GlobalDB.dacpac'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)\GlobalDB'
+
+
+# 7. Copy migrations
+- task: CopyFiles@2
+  displayName: 'Copy Migrations'
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)\Migrations'
+    Contents: '**'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)\GlobalDB\Migrations'
+
+
+# 8. Publish artifact
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish GlobalDB Artifact'
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)\GlobalDB'
+    artifact: 'GlobalDB'
